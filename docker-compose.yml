@@ -1,0 +1,34 @@
+version: '3.6'
+
+services:
+  # Postgres
+  postgres:
+    container_name: postgres
+    image: postgres:latest
+    ports:
+      - 54320:5432
+    volumes:
+      - ./docker/postgres/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+      - ./docker/postgres/data:/var/lib/postgresql/data
+    env_file:
+      - ./docker/postgres/.env
+
+  # Django
+  django:
+    container_name: django
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 8025:8025
+    links:
+      - postgres:postgres
+    env_file:
+      - ./docker/postgres/.env
+    volumes:
+      - .:/srv/app
+      - ./docker/scripts:/usr/src/docker_scripts
+    command: bash -c "/usr/src/docker_scripts/wait-for-postgres.sh postgres python /srv/app/src/manage.py runserver 0.0.0.0:8025"
+    depends_on:
+      - postgres
